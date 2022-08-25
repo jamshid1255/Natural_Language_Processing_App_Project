@@ -12,6 +12,11 @@ from nltk.stem import PorterStemmer
 import re
 from sklearn.feature_extraction.text import CountVectorizer
 
+import geopy
+from geopy.geocoders import Nominatim
+locator = Nominatim(user_agent="myGeocoder")
+
+
 connection = psycopg2.connect(
     user="postgres",
     host="localhost",
@@ -29,8 +34,8 @@ cursor = connection.cursor()
 ''''''''''''''''''''''''''''''''''''''''Teets Collection from Twitter'''''''''''''''''''''''''''''''''''''''
 import tweepy
 
-consumerKey = 'xxxxxxxxxxxxxx'
-consumerSecret = 'xxxxxxxxxxxxxxxxxxxxxxxxxxx'
+consumerKey = 'fvjRrg3P7a8aSVioOx1qjX2Yy'
+consumerSecret = '3Jjx72kGIam0ALME3pB4zHtdSFuiHdybnIN94Omg3cCvRMG7fm'
 
 authenticate = tweepy.OAuthHandler(consumerKey, consumerSecret)
 api = tweepy.API(authenticate, wait_on_rate_limit= True)
@@ -129,7 +134,7 @@ def colsum(username, arr, n, m,nameofPerson,locationofPerson):
     frequencyForWords.append(locationofPerson)
     FinalfrequencyForWords.append(frequencyForWords)
         
-vocab = {'fuck':0, 'bitch':1,'bullshit':2,'rubbish':3,'kiss': 4}
+vocab = {'fuck':0, 'bitch':1,'shit':2,'asshole':3,'motherfucker': 4}
 unique_Followers = tweets['followerUsername'].unique()
 unique_Followers_location = tweets['location']
 
@@ -141,8 +146,6 @@ for i in range(len(unique_Followers)):
     for j in range(len(tweets['tweets'])):
         if(unique_Followers[i]==tweets['followerUsername'][j]):
             followersTweetIndividual.append(tweets['tweets'][j])
-    
-    
     X = vectorizer.fit_transform(followersTweetIndividual)
     
     frequencyForBadWords = X.toarray()
@@ -152,22 +155,20 @@ for i in range(len(unique_Followers)):
 #with open('bbbadbadWordsFrequency.csv','a') as csvfile:
 #    np.savetxt(csvfile, FinalfrequencyForWords,delimiter=',',header='Name, fuck, bitch, bullshit, rubbish, kiss, location',fmt='%s', comments='')
 
-
-
 #print(FinalfrequencyForWords)
 #print(FinalfrequencyForWords[0][0])
 
-
-
 for d in range(len(FinalfrequencyForWords)):
+    location = locator.geocode(FinalfrequencyForWords[d][7])
     record_to_insert = (FinalfrequencyForWords[d][0], FinalfrequencyForWords[d][1],np.asscalar(FinalfrequencyForWords[d][2]),
                         np.asscalar(FinalfrequencyForWords[d][3]),np.asscalar(FinalfrequencyForWords[d][4]),np.asscalar(FinalfrequencyForWords[d][5]),
-                        np.asscalar(FinalfrequencyForWords[d][6]),FinalfrequencyForWords[d][7])
+                        np.asscalar(FinalfrequencyForWords[d][6]),FinalfrequencyForWords[d][7],location.latitude,location.longitude)
     #print(record_to_insert)
-    cursor.execute('INSERT into "tableforBadWords"("user","followerUsername", fuck, bitch, bullshit, rubbish, kiss,location) VALUES (%s,%s, %s,%s, %s,%s, %s, %s)',record_to_insert )
+    
+    cursor.execute('INSERT into "tableforBadWords"("user","followerUsername", fuck, bitch, shit, asshole, motherfucker,location,latitude, "long") VALUES (%s,%s, %s,%s, %s,%s, %s, %s, %s, %s)',record_to_insert )
   
   
-print("List has been inserted to employee table successfully...")
+print("List has been inserted to  table successfully...")
   
 # Commit your changes in the database
 connection.commit()
