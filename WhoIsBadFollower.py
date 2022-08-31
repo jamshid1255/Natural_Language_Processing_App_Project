@@ -34,8 +34,8 @@ cursor = connection.cursor()
 ''''''''''''''''''''''''''''''''''''''''Teets Collection from Twitter'''''''''''''''''''''''''''''''''''''''
 import tweepy
 
-consumerKey = 'xxxxxx'
-consumerSecret = 'xxxxxxxx'
+consumerKey = 'xxxx'
+consumerSecret = 'xxxxx'
 
 authenticate = tweepy.OAuthHandler(consumerKey, consumerSecret)
 api = tweepy.API(authenticate, wait_on_rate_limit= True)
@@ -64,7 +64,7 @@ for i in range(len(FollowersscreenName)):
     #print("Show the ",num," recent tweets for \n", FollowersscreenName[i])
     for tweet in posts[0:num]:
         #print(str(j) + ') '+ tweet.full_text + '\n')
-        cursor.execute('INSERT into "myFollowersTweets"(username,"followerUsername", tweets, location) VALUES (%s,%s, %s,%s)',(account,FollowersscreenName[i],tweet.full_text,tweet.user.location) )
+        cursor.execute('INSERT into "myFollowersTweets"(username,"followerUsername", tweets, location,tweet_user_id, tweet_created_at, tweet_id, tweet_user_followers_count,tweet_user_following_count,tweet_user_verified,profile_image_url_https) VALUES (%s,%s, %s,%s,%s,%s,%s,%s,%s,%s,%s)',(account,FollowersscreenName[i],tweet.full_text,tweet.user.location,tweet.user.id,tweet.created_at,tweet.id,tweet.user.followers_count,tweet.user.friends_count,tweet.user.verified,tweet.user.profile_image_url_https))
         j+=1
     #print('000000000000000000000000000000000000000000000000000')
 
@@ -77,7 +77,7 @@ result = cursor.fetchall()
 #print(type(result))
 #print(result)
 
-products_list = ['username', 'followerUsername', 'tweets', 'location']
+products_list = ['username', 'followerUsername', 'tweets', 'location','tweet_user_id', 'tweet_created_at', 'tweet_id', 'tweet_user_followers_count','tweet_user_following_count','tweet_user_verified','profile_image_url_https']
 
 tweets = pd.DataFrame (result, columns = products_list)
 #print(tweets['location'])
@@ -121,7 +121,7 @@ def mytokenizer(text):
 
 FinalfrequencyForWords = []
 zzz = 0 ;
-def colsum(username, arr, n, m,nameofPerson,locationofPerson):
+def colsum(username, arr, n, m,nameofPerson,locationofPerson,IDofPerson,profilePhoto):
     frequencyForWords = []
     frequencyForWords.append(username)
     frequencyForWords.append(nameofPerson)
@@ -132,24 +132,27 @@ def colsum(username, arr, n, m,nameofPerson,locationofPerson):
         frequencyForWords.append(su)
     # print(frequencyForWords)
     frequencyForWords.append(locationofPerson)
+    frequencyForWords.append(IDofPerson)
+    frequencyForWords.append(profilePhoto)
     FinalfrequencyForWords.append(frequencyForWords)
         
 vocab = {'fuck':0, 'bitch':1,'shit':2,'asshole':3,'motherfucker': 4}
 unique_Followers = tweets['followerUsername'].unique()
 unique_Followers_location = tweets['location']
+unique_Followers_ids = tweets['tweet_user_id'].unique()
+unique_Followers_profile = tweets['profile_image_url_https'].unique()
 
 followersTweetIndividual = []
 vectorizer = CountVectorizer(vocabulary=vocab, tokenizer = mytokenizer)
 # print(vectorizer.get_feature_names_out())
 for i in range(len(unique_Followers)):
-
     for j in range(len(tweets['tweets'])):
         if(unique_Followers[i]==tweets['followerUsername'][j]):
             followersTweetIndividual.append(tweets['tweets'][j])
     X = vectorizer.fit_transform(followersTweetIndividual)
     
     frequencyForBadWords = X.toarray()
-    colsum(sys.argv[1],frequencyForBadWords, len(frequencyForBadWords[0]), len(frequencyForBadWords),unique_Followers[i],tweets['location'][i])
+    colsum(sys.argv[1],frequencyForBadWords, len(frequencyForBadWords[0]), len(frequencyForBadWords),unique_Followers[i],tweets['location'][i],unique_Followers_ids[i],unique_Followers_profile[i])
 
 
 #with open('bbbadbadWordsFrequency.csv','a') as csvfile:
@@ -162,10 +165,10 @@ for d in range(len(FinalfrequencyForWords)):
     location = locator.geocode(FinalfrequencyForWords[d][7])
     record_to_insert = (FinalfrequencyForWords[d][0], FinalfrequencyForWords[d][1],np.asscalar(FinalfrequencyForWords[d][2]),
                         np.asscalar(FinalfrequencyForWords[d][3]),np.asscalar(FinalfrequencyForWords[d][4]),np.asscalar(FinalfrequencyForWords[d][5]),
-                        np.asscalar(FinalfrequencyForWords[d][6]),FinalfrequencyForWords[d][7],location.latitude,location.longitude)
+                        np.asscalar(FinalfrequencyForWords[d][6]),FinalfrequencyForWords[d][7],location.latitude,location.longitude,FinalfrequencyForWords[d][8],FinalfrequencyForWords[d][9])
     #print(record_to_insert)
     
-    cursor.execute('INSERT into "tableforBadWords"("user","followerUsername", fuck, bitch, shit, asshole, motherfucker,location,latitude, "long") VALUES (%s,%s, %s,%s, %s,%s, %s, %s, %s, %s)',record_to_insert )
+    cursor.execute('INSERT into "tableforBadWords"("user","followerUsername", fuck, bitch, shit, asshole, motherfucker,location,latitude, "long", tweet_user_id,profile_image_url_https) VALUES (%s,%s, %s,%s, %s,%s, %s, %s, %s, %s, %s,%s)',record_to_insert )
   
   
 print("List has been inserted to  table successfully...")
